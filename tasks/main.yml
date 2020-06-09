@@ -1,0 +1,85 @@
+---
+ - name: "create directories"
+   vars:
+   file: 
+     path: "{{ item }}"
+     state: directory
+   loop:
+    - "{{ install_dir }}"    # see defaults.yml
+    - "{{ ssh_dir }}"        # see defaults.yml
+    - "{{ ssh_config_dir }}" # see defaults.yml
+
+ - name: "checkout {{ src_repo_url }}"
+   git: 
+     repo: "{{ src_repo_url }}"
+     dest: "{{ checkout_dest }}" 
+     update: False
+
+ - name: "create venv and install dependencies for {{ src_repo_url }}"
+   pip:
+     chdir: "{{ checkout_dest }}"
+     requirements: "requirements.txt"
+     virtualenv: "{{ checkout_dest }}/venv"
+     virtualenv_command: "python3.8 -m venv"
+ ### end install-ssh-deploy-key
+
+ - name: "configure ssh to use {{ ssh_config_dir }}"
+   copy: 
+     content: "Include {{ ssh_config_dir }}/*"
+     dest: "{{ ssh_dir }}/config"
+
+ - name: "create ssh configurations per repo in {{ ssh_config_dir }}"
+   vars: # loop vars
+     repo_name: "{{ item.name }}"
+     deploy_key_file: "{{ ssh_dir }}/{{ repo_name}}_rsa"
+     github_ssh_config: "github-ssh-{{ repo_name }}-config"
+   template:
+     src: "templates/github_ssh_config.j2"
+     dest: "{{ ssh_config_dir }}/{{ github_ssh_config }}"
+   loop: "{{ repos }}"
+   loop_control:
+     label: "{{ github_ssh_config }}"
+
+ - name: "generate ssh keypairs for use as deploy keys"
+   vars: # loop vars
+     repo_name: "{{ item.name }}"
+     deploy_key_file: "{{ ssh_dir }}/{{ repo_name}}_rsa"
+     github_ssh_config: "github-ssh-{{ repo_name }}-config"
+   openssh_keypair:
+     path: "{{ deploy_key_file }}"
+     size: "rsa_keysize"
+   loop: "{{ repos }}"
+   loop_control:
+     label: "{{ deploy_key_file }}"
+
+ # TODO: rewrite as a module     
+ - name: "add deploy keys to github repos"
+   vars: # loop vars
+     repo_name: "{{ item.name }}"
+     deploy_public_key_file: "{{ ssh_dir }}/{{ repo_name}}_rsa.pub"
+     run_command: "{{ virtualenv }}/bin/python3.8 ssh-deploy-key-github.py"
+   command:
+     chdir: "{{ checkout_dest }}"
+     cmd: "{{ run_command }} -r {{ repo_name }} -i {{ deploy_public_key_file }}"
+   loop: "{{ repos }}"
+   loop_control:
+     label: "{{ deploy_public_key_file }}"
+   register: result
+   failed_when: >
+     ("GithubException" in result.stderr) or
+     ("GITHUB_USER_TOKEN not provided" in result.stderr) or
+     (result.rc != 0) 
+
+ - name: "clone repos with new deploy key"
+   vars: # loop vars
+     repo_name: "{{ item.name }}"
+     repo_url: "git@github-{{ repo_name }}:{{ repo_owner }}/{{ repo_name }}.git"
+   git: 
+     repo: "{{ repo_url }}"
+     dest: "{{ item.dest }}" 
+     version: "{{ item.branch }}"
+     update: False
+   loop: "{{ repos }}"
+   loop_control:
+     label: "{{ item.dest }}"
+

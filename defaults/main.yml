@@ -1,0 +1,13 @@
+---
+home: "{{ ansible_env.HOME }}"
+ssh_dir: "{{ home }}/.ssh"
+ssh_config_dir: "{{ home }}/.ssh/config.d"
+repo_owner: "alta3"
+rsa_keysize: 4096
+
+# ssh-deploy-key-github shared vars
+install_dir: "/opt"
+src_repo_name: "ssh-deploy-key-github"
+src_repo_url: "git@github.com:alta3/{{ src_repo_name }}.git"
+checkout_dest: "{{ install_dir }}/{{ src_repo_name }}"
+virtualenv: "{{ checkout_dest }}/venv"

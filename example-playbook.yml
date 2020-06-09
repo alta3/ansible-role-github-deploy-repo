@@ -1,0 +1,16 @@
+--- 
+ - name: setup deploy keys for labs repos
+   hosts: localhost
+   roles:
+     - role: checkout-deploy-repo
+       vars:
+         repos: 
+           - name: kubernetes-labs 
+             dest: ~/git/kubernetes-labs
+             branch: mdbook
+           - name: api-labs 
+             dest: ~/git/api-labs
+             branch: master
+           - name: py1-labs 
+             dest: ~/git/py1-labs
+             branch: mdbook
