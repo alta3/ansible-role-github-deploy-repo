@@ -47,7 +47,7 @@
      github_ssh_config: "github-ssh-{{ repo_name }}-config"
    openssh_keypair:
      path: "{{ deploy_key_file }}"
-     size: "rsa_keysize"
+     size: "{{ rsa_keysize }}"
    loop: "{{ repos }}"
    loop_control:
      label: "{{ deploy_key_file }}"
