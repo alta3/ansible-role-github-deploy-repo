@@ -3,11 +3,13 @@
    vars:
    file: 
      path: "{{ item }}"
+     owner: "{{ ansible_user }}"
      state: directory
    loop:
     - "{{ install_dir }}"    # see defaults.yml
     - "{{ ssh_dir }}"        # see defaults.yml
     - "{{ ssh_config_dir }}" # see defaults.yml
+   become: True
 
  - name: "checkout {{ src_repo_url }}"
    git: 
@@ -61,6 +63,8 @@
    command:
      chdir: "{{ checkout_dest }}"
      cmd: "{{ run_command }} -r {{ repo_name }} -i {{ deploy_public_key_file }}"
+   environment:
+     GITHUB_USER_TOKEN: "{{ lookup('env', 'GITHUB_USER_TOKEN') }}"
    loop: "{{ repos }}"
    loop_control:
      label: "{{ deploy_public_key_file }}"
@@ -75,6 +79,8 @@
      repo_name: "{{ item.name }}"
      repo_url: "git@github-{{ repo_name }}:{{ repo_owner }}/{{ repo_name }}.git"
    git: 
+     accept_hostkey: True
+     recursive: False # deploy keys are only valid for 1 repo
      repo: "{{ repo_url }}"
      dest: "{{ item.dest }}" 
      version: "{{ item.branch }}"
