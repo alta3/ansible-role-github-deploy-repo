@@ -43,7 +43,7 @@
         chdir: "{{ checkout_dest }}"
         requirements: "requirements.txt"
         virtualenv: "{{ checkout_dest }}/venv"
-        virtualenv_command: "python3.8 -m venv"
+        virtualenv_command: "/usr/bin/python3.8 -m venv"
     ### end install-ssh-deploy-key
    
     - name: "configure ssh to use {{ ssh_config_dir }}"
